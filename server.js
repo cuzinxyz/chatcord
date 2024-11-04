@@ -13,6 +13,7 @@ const {
   userLeave,
   getRoomUsers,
 } = require("./utils/users");
+const ip = require("ip");
 
 const app = express();
 const server = http.createServer(app);
@@ -39,14 +40,20 @@ io.on("connection", (socket) => {
     socket.join(user.room);
 
     // Welcome current user
-    socket.emit("message", formatMessage(botName, "Welcome to ChatCord!"));
+    socket.emit(
+      "message",
+      formatMessage(true, botName, "👋 Welcome to ChatCord!")
+    );
+
+    // Send current user
+    socket.emit("currentUser", user);
 
     // Broadcast when a user connects
     socket.broadcast
       .to(user.room)
       .emit(
         "message",
-        formatMessage(botName, `${user.username} has joined the chat`)
+        formatMessage(true, botName, `${user.username} has joined the chat`)
       );
 
     // Send users and room info
@@ -60,7 +67,7 @@ io.on("connection", (socket) => {
   socket.on("chatMessage", (msg) => {
     const user = getCurrentUser(socket.id);
 
-    io.to(user.room).emit("message", formatMessage(user.username, msg));
+    io.to(user.room).emit("message", formatMessage(false, user.username, msg));
   });
 
   // Runs when client disconnects
@@ -70,7 +77,7 @@ io.on("connection", (socket) => {
     if (user) {
       io.to(user.room).emit(
         "message",
-        formatMessage(botName, `${user.username} has left the chat`)
+        formatMessage(true, botName, `${user.username} has left the chat`)
       );
 
       // Send users and room info
@@ -83,5 +90,11 @@ io.on("connection", (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
+const HOSTNAME = "0.0.0.0";
+console.log(ip.address());
 
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, HOSTNAME, () => {
+  console.log(`http://${ip.address()}:${PORT}`);
+
+  console.log(`http://localhost:${PORT}`);
+});
